@@ -1,10 +1,9 @@
 package options
 
 import (
+	"errors"
+	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRead(t *testing.T) {
@@ -20,8 +19,13 @@ func TestRead(t *testing.T) {
 		result, err := Read[int](opt, optionKey)
 
 		// THEN
-		require.NoError(t, err)
-		assert.Equal(t, expectedValue, result)
+		if err != nil {
+			t.Error(fmt.Sprintf("not expected to get an error { - %s - }", err.Error()))
+			return
+		}
+		if expectedValue != result {
+			t.Error(fmt.Sprintf("value %v[expected] is not equal to %v[actual]", expectedValue, result))
+		}
 	})
 	t.Run("it should return an error when option is not present in option set", func(t *testing.T) {
 		t.Parallel()
@@ -34,8 +38,13 @@ func TestRead(t *testing.T) {
 		result, err := Read[int](opt, optionKey)
 
 		// THEN
-		require.ErrorIs(t, err, ErrNotFound)
-		assert.Equal(t, 0, result)
+		if !errors.Is(err, ErrNotFound) {
+			t.Error(fmt.Sprintf("no error or error is not options.ErrNotFound [%v]", err))
+			return
+		}
+		if result != 0 {
+			t.Error(fmt.Sprintf("result is expected to be equal to 0 [%v]", result))
+		}
 	})
 }
 
@@ -48,9 +57,25 @@ func TestReadOrPanic(t *testing.T) {
 		opt := New().Resolve()
 
 		// WHEN-THEN
-		assert.PanicsWithError(t, "cannot read option 'test-option' from provided option set: option not found", func() {
+		func() {
+			defer func() {
+				r := recover()
+				if r == nil {
+					t.Error("operation is expected to trigger panic")
+					return
+				}
+				err, ok := r.(error)
+				if !ok {
+					t.Error("recover value is not an error")
+					return
+				}
+				if err.Error() != "cannot read option 'test-option' from provided option set: option not found" {
+					t.Error(fmt.Sprintf("recover error contains unexpected value { - %s - }", err.Error()))
+				}
+			}()
+
 			_ = ReadOrPanic[int](opt, optionKey)
-		})
+		}()
 	})
 }
 
@@ -67,7 +92,9 @@ func TestReadOrDefaultOrPanic(t *testing.T) {
 		result := ReadOrDefaultOrPanic[int](opt, optionKey, expectedDefaultValue)
 
 		// THEN
-		assert.Equal(t, expectedDefaultValue, result)
+		if expectedDefaultValue != result {
+			t.Error(fmt.Sprintf("value %v[expected] is not equal to %v[actual]", expectedDefaultValue, result))
+		}
 	})
 	t.Run("it should panic on different errors than not found", func(t *testing.T) {
 		t.Parallel()
@@ -77,9 +104,25 @@ func TestReadOrDefaultOrPanic(t *testing.T) {
 		opt := New().Resolve(setOptionForTest(optionKey, "100"))
 
 		// WHEN-THEN
-		assert.PanicsWithError(t, "option 'test-option' is expected to be int but is string: wrong type expected from option", func() {
+		func() {
+			defer func() {
+				r := recover()
+				if r == nil {
+					t.Error("operation is expected to trigger panic")
+					return
+				}
+				err, ok := r.(error)
+				if !ok {
+					t.Error("recover value is not an error")
+					return
+				}
+				if err.Error() != "option 'test-option' is expected to be int but is string: wrong type expected from option" {
+					t.Error(fmt.Sprintf("recover error contains unexpected value { - %s - }", err.Error()))
+				}
+			}()
+
 			_ = ReadOrDefaultOrPanic[int](opt, optionKey, 200)
-		})
+		}()
 	})
 }
 
