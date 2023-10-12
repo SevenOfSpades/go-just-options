@@ -20,7 +20,11 @@ func Read[T any](options Options, key OptionKey) (T, error) {
 		return t, fmt.Errorf("cannot read option '%s' from provided option set: %w", key.String(), err)
 	}
 	expType := fmt.Sprintf("%T", t)
-	if expType != typeName {
+	if expType == "<nil>" {
+		if _, ok := val.(T); !ok {
+			return t, fmt.Errorf("option '%s' is expected to implement %s but %s is not compatible with it: %w", key.String(), fmt.Sprintf("%T", (*T)(nil))[1:], typeName, ErrTypeMismatch)
+		}
+	} else if expType != typeName {
 		return t, fmt.Errorf("option '%s' is expected to be %s but is %s: %w", key.String(), expType, typeName, ErrTypeMismatch)
 	}
 	return val.(T), nil

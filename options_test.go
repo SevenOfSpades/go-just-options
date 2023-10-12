@@ -6,6 +6,20 @@ import (
 	"testing"
 )
 
+type (
+	testInterface interface {
+		doStuff() bool
+	}
+	testInterfaceImplementation struct {
+	}
+	testWithoutInterfaceImplementation struct {
+	}
+)
+
+func (t *testInterfaceImplementation) doStuff() bool {
+	return true
+}
+
 func TestRead(t *testing.T) {
 	t.Run("it should read value from options", func(t *testing.T) {
 		t.Parallel()
@@ -44,6 +58,47 @@ func TestRead(t *testing.T) {
 		}
 		if result != 0 {
 			t.Error(fmt.Sprintf("result is expected to be equal to 0 [%v]", result))
+		}
+	})
+	t.Run("it should read value for struct implementing interface", func(t *testing.T) {
+		t.Parallel()
+
+		// GIVEN
+		expectedValue := &testInterfaceImplementation{}
+		optionKey := OptionKeyFromString("test-with-interface")
+		opt := New().Resolve(setOptionForTest(optionKey, expectedValue))
+
+		// WHEN
+		result, err := Read[testInterface](opt, optionKey)
+
+		// THEN
+		if err != nil {
+			t.Error(fmt.Sprintf("not expected to get an error { - %s - }", err.Error()))
+			return
+		}
+		if _, ok := result.(*testInterfaceImplementation); !ok {
+			t.Error("result is not compatible with testInterface")
+		}
+	})
+	t.Run("it should fail with proper error when interface is not compatible with value", func(t *testing.T) {
+		t.Parallel()
+
+		// GIVEN
+		expectedValue := &testWithoutInterfaceImplementation{}
+		optionKey := OptionKeyFromString("test-with-interface")
+		opt := New().Resolve(setOptionForTest(optionKey, expectedValue))
+
+		// WHEN
+		_, err := Read[testInterface](opt, optionKey)
+
+		// THEN
+		if err == nil {
+			t.Error("an error is expected")
+			return
+		}
+		if err.Error() != "option 'test-with-interface' is expected to implement options.testInterface but *options.testWithoutInterfaceImplementation is not compatible with it: wrong type expected from option" {
+			t.Error("error message is incorrect")
+			return
 		}
 	})
 }
