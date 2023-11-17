@@ -53,7 +53,7 @@ type (
 
 // NewService only needs to accept options.Option from anything that instantiates it.
 func NewService(opts ...options.Option) (*Service, error) {
-	opt := options.New().Resolve(opts...)
+	opt := options.Resolve(opts...)
 
 	token, err := options.Read[Token](opt, optionServiceToken)
 	// or use token := options.ReadOrPanic[Token](opt, optionServiceToken) to panic when there is an error during read

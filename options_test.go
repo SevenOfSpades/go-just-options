@@ -27,7 +27,7 @@ func TestRead(t *testing.T) {
 		// GIVEN
 		expectedValue := 42
 		optionKey := OptionKeyFromString("test-option")
-		opt := New().Resolve(setOptionForTest(optionKey, expectedValue))
+		opt := Resolve(setOptionForTest(optionKey, expectedValue))
 
 		// WHEN
 		result, err := Read[int](opt, optionKey)
@@ -46,7 +46,7 @@ func TestRead(t *testing.T) {
 
 		// GIVEN
 		optionKey := OptionKeyFromString("test-option")
-		opt := New().Resolve()
+		opt := Resolve()
 
 		// WHEN
 		result, err := Read[int](opt, optionKey)
@@ -66,7 +66,7 @@ func TestRead(t *testing.T) {
 		// GIVEN
 		expectedValue := &testInterfaceImplementation{}
 		optionKey := OptionKeyFromString("test-with-interface")
-		opt := New().Resolve(setOptionForTest(optionKey, expectedValue))
+		opt := Resolve(setOptionForTest(optionKey, expectedValue))
 
 		// WHEN
 		result, err := Read[testInterface](opt, optionKey)
@@ -86,7 +86,7 @@ func TestRead(t *testing.T) {
 		// GIVEN
 		expectedValue := &testWithoutInterfaceImplementation{}
 		optionKey := OptionKeyFromString("test-with-interface")
-		opt := New().Resolve(setOptionForTest(optionKey, expectedValue))
+		opt := Resolve(setOptionForTest(optionKey, expectedValue))
 
 		// WHEN
 		_, err := Read[testInterface](opt, optionKey)
@@ -101,6 +101,49 @@ func TestRead(t *testing.T) {
 			return
 		}
 	})
+	t.Run("it should not allow for interface to be nil", func(t *testing.T) {
+		t.Parallel()
+
+		// GIVEN
+		optionKey := OptionKeyFromString("test-with-nil-interface")
+		opt := Resolve(setOptionForInterface(optionKey, nil))
+
+		// WHEN
+		_, err := Read[testInterface](opt, optionKey)
+
+		// THEN
+		if err == nil {
+			t.Error("an error is expected")
+			return
+		}
+		if err.Error() != "option 'test-with-nil-interface' is expected to be options.testInterface but got nil: nil value" {
+			t.Error("error message is incorrect")
+			return
+		}
+	})
+}
+
+func TestReadOrDefault(t *testing.T) {
+	t.Run("it should allow for interface to be nil when nil is specified as default value", func(t *testing.T) {
+		t.Parallel()
+
+		// GIVEN
+		optionKey := OptionKeyFromString("test-with-nil-interface")
+		opt := Resolve(setOptionForInterface(optionKey, nil))
+
+		// WHEN
+		val, err := ReadOrDefault[testInterface](opt, optionKey, nil)
+
+		// THEN
+		if err != nil {
+			t.Error(fmt.Sprintf("not expected to get an error { - %s - }", err.Error()))
+			return
+		}
+		if val != nil {
+			t.Error(fmt.Sprintf("value should be nil but is %T", val))
+			return
+		}
+	})
 }
 
 func TestReadOrPanic(t *testing.T) {
@@ -109,7 +152,7 @@ func TestReadOrPanic(t *testing.T) {
 
 		// GIVEN
 		optionKey := OptionKeyFromString("test-option")
-		opt := New().Resolve()
+		opt := Resolve()
 
 		// WHEN-THEN
 		func() {
@@ -141,7 +184,7 @@ func TestReadOrDefaultOrPanic(t *testing.T) {
 		// GIVEN
 		expectedDefaultValue := 100
 		optionKey := OptionKeyFromString("test-option")
-		opt := New().Resolve()
+		opt := Resolve()
 
 		// WHEN
 		result := ReadOrDefaultOrPanic[int](opt, optionKey, expectedDefaultValue)
@@ -156,7 +199,7 @@ func TestReadOrDefaultOrPanic(t *testing.T) {
 
 		// GIVEN
 		optionKey := OptionKeyFromString("test-option")
-		opt := New().Resolve(setOptionForTest(optionKey, "100"))
+		opt := Resolve(setOptionForTest(optionKey, "100"))
 
 		// WHEN-THEN
 		func() {
@@ -179,6 +222,12 @@ func TestReadOrDefaultOrPanic(t *testing.T) {
 			_ = ReadOrDefaultOrPanic[int](opt, optionKey, 200)
 		}()
 	})
+}
+
+func setOptionForInterface(key OptionKey, val testInterface) Option {
+	return func(options Options) {
+		WriteOrPanic[testInterface](options, key, val)
+	}
 }
 
 func setOptionForTest[T any](key OptionKey, value T) Option {

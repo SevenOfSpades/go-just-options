@@ -5,9 +5,9 @@ import (
 	"fmt"
 )
 
-// New will create empty set for options which can be filled with values using Options.Resolve.
-func New() Options {
-	return newOptions()
+// Resolve will create Options instance filled with values based on received Option modificators.
+func Resolve(opts ...Option) Options {
+	return newOptions().Resolve(opts...)
 }
 
 // Read will attempt to acquire value associated with provided key from received Options set.
@@ -22,6 +22,9 @@ func Read[T any](options Options, key OptionKey) (T, error) {
 	expType := fmt.Sprintf("%T", t)
 	if expType == "<nil>" {
 		if _, ok := val.(T); !ok {
+			if typeName == "<nil>" {
+				return t, fmt.Errorf("option '%s' is expected to be %s but got nil: %w", key.String(), fmt.Sprintf("%T", (*T)(nil))[1:], ErrNilValue)
+			}
 			return t, fmt.Errorf("option '%s' is expected to implement %s but %s is not compatible with it: %w", key.String(), fmt.Sprintf("%T", (*T)(nil))[1:], typeName, ErrTypeMismatch)
 		}
 	} else if expType != typeName {
@@ -36,11 +39,12 @@ func Read[T any](options Options, key OptionKey) (T, error) {
 func ReadOrDefault[T any](options Options, key OptionKey, defaultValue T) (T, error) {
 	val, err := Read[T](options, key)
 	if err != nil {
-		if !errors.Is(err, ErrNotFound) {
-			var t T
-			return t, err
+		if (any(defaultValue) == nil && errors.Is(err, ErrNilValue)) || errors.Is(err, ErrNotFound) {
+			return defaultValue, nil
 		}
-		return defaultValue, nil
+
+		var t T
+		return t, err
 	}
 	return val, nil
 }
