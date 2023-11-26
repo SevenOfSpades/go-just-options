@@ -9,7 +9,7 @@ var (
 	ErrDuplicatedKey = errors.New("option has already been set")
 )
 
-type Options interface {
-	Resolve(...Option) Options
+type Resolver interface {
+	Resolve(Options) Resolver
 	getRegistry() *registry
 }

@@ -1,20 +1,20 @@
 package options
 
-type defaultOptions struct {
+type defaultResolver struct {
 	registry *registry
 }
 
-func newOptions() *defaultOptions {
-	return &defaultOptions{registry: newRegistry()}
+func newResolver() *defaultResolver {
+	return &defaultResolver{registry: newRegistry()}
 }
 
-func (o *defaultOptions) Resolve(setters ...Option) Options {
+func (o *defaultResolver) Resolve(setters Options) Resolver {
 	for _, x := range setters {
 		x(o)
 	}
 	return o
 }
 
-func (o *defaultOptions) getRegistry() *registry {
+func (o *defaultResolver) getRegistry() *registry {
 	return o.registry
 }

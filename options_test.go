@@ -27,7 +27,7 @@ func TestRead(t *testing.T) {
 		// GIVEN
 		expectedValue := 42
 		optionKey := OptionKeyFromString("test-option")
-		opt := Resolve(setOptionForTest(optionKey, expectedValue))
+		opt := Resolve(Options{setOptionForTest(optionKey, expectedValue)})
 
 		// WHEN
 		result, err := Read[int](opt, optionKey)
@@ -46,7 +46,7 @@ func TestRead(t *testing.T) {
 
 		// GIVEN
 		optionKey := OptionKeyFromString("test-option")
-		opt := Resolve()
+		opt := Resolve(Options{})
 
 		// WHEN
 		result, err := Read[int](opt, optionKey)
@@ -66,7 +66,7 @@ func TestRead(t *testing.T) {
 		// GIVEN
 		expectedValue := &testInterfaceImplementation{}
 		optionKey := OptionKeyFromString("test-with-interface")
-		opt := Resolve(setOptionForTest(optionKey, expectedValue))
+		opt := Resolve(Options{setOptionForTest(optionKey, expectedValue)})
 
 		// WHEN
 		result, err := Read[testInterface](opt, optionKey)
@@ -86,7 +86,7 @@ func TestRead(t *testing.T) {
 		// GIVEN
 		expectedValue := &testWithoutInterfaceImplementation{}
 		optionKey := OptionKeyFromString("test-with-interface")
-		opt := Resolve(setOptionForTest(optionKey, expectedValue))
+		opt := Resolve(Options{setOptionForTest(optionKey, expectedValue)})
 
 		// WHEN
 		_, err := Read[testInterface](opt, optionKey)
@@ -106,7 +106,7 @@ func TestRead(t *testing.T) {
 
 		// GIVEN
 		optionKey := OptionKeyFromString("test-with-nil-interface")
-		opt := Resolve(setOptionForInterface(optionKey, nil))
+		opt := Resolve(Options{setOptionForInterface(optionKey, nil)})
 
 		// WHEN
 		_, err := Read[testInterface](opt, optionKey)
@@ -129,7 +129,7 @@ func TestReadOrDefault(t *testing.T) {
 
 		// GIVEN
 		optionKey := OptionKeyFromString("test-with-nil-interface")
-		opt := Resolve(setOptionForInterface(optionKey, nil))
+		opt := Resolve(Options{setOptionForInterface(optionKey, nil)})
 
 		// WHEN
 		val, err := ReadOrDefault[testInterface](opt, optionKey, nil)
@@ -152,7 +152,7 @@ func TestReadOrPanic(t *testing.T) {
 
 		// GIVEN
 		optionKey := OptionKeyFromString("test-option")
-		opt := Resolve()
+		opt := Resolve(Options{})
 
 		// WHEN-THEN
 		func() {
@@ -184,7 +184,7 @@ func TestReadOrDefaultOrPanic(t *testing.T) {
 		// GIVEN
 		expectedDefaultValue := 100
 		optionKey := OptionKeyFromString("test-option")
-		opt := Resolve()
+		opt := Resolve(Options{})
 
 		// WHEN
 		result := ReadOrDefaultOrPanic[int](opt, optionKey, expectedDefaultValue)
@@ -199,7 +199,7 @@ func TestReadOrDefaultOrPanic(t *testing.T) {
 
 		// GIVEN
 		optionKey := OptionKeyFromString("test-option")
-		opt := Resolve(setOptionForTest(optionKey, "100"))
+		opt := Resolve(Options{setOptionForTest(optionKey, "100")})
 
 		// WHEN-THEN
 		func() {
@@ -225,13 +225,13 @@ func TestReadOrDefaultOrPanic(t *testing.T) {
 }
 
 func setOptionForInterface(key OptionKey, val testInterface) Option {
-	return func(options Options) {
-		WriteOrPanic[testInterface](options, key, val)
+	return func(r Resolver) {
+		WriteOrPanic[testInterface](r, key, val)
 	}
 }
 
 func setOptionForTest[T any](key OptionKey, value T) Option {
-	return func(options Options) {
-		WriteOrPanic[T](options, key, value)
+	return func(r Resolver) {
+		WriteOrPanic[T](r, key, value)
 	}
 }
